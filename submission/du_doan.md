@@ -122,7 +122,17 @@ Nhìn trên video:
 
 - **video_2**: cảnh đèn đường sáng, không quá tối. Cả hai tracker sót nhiều người nhỏ ở xa phía trên khung hình. Người gần giữ ID ổn. `botsort` 0.15 bắt thêm vài người nhỏ, không thấy hộp giả rõ ràng.
 - **video_3**: người rất gần camera. Người mặc vest và người áo sọc giữ ID ở cả hai tracker. `botsort` 0.15 bắt thêm người nhỏ phía xa.
-- **video_4**: ở frame 60 và 140 không thấy hộp giả trên kính phản chiếu, kể cả `conf` 0.15. `conf` 0.15 bắt thêm người ở xa so với 0.5.
+- **video_4**: ở frame 60 và 140 không thấy hộp giả trên kính phản chiếu, kể cả `conf` 0.15. `conf` 0.15 bắt thêm người ở xa so với 0.5. Xem hết bản nộp đủ frame: có hộp giả trên kính, chỉ chớp khoảng 0.5 s rồi mất.
+
+  Chạy thêm đủ 900 frame để kiểm tra nâng `conf` có bỏ được hộp đó không:
+
+  | conf | hộp/frame | track < 15 frame | % track < 10 frame |
+  |---|---|---|---|
+  | 0.15 | 7.4 | 13 | 16% |
+  | 0.25 | 7.2 | 20 | 24% |
+  | 0.3 | 6.9 | 23 | 27% |
+
+  Nâng `conf` làm **tăng** track ngắn: các track ngắn có điểm trung bình 0.4–0.8 nên ngưỡng 0.3 không loại được, còn người thật bị che có điểm tụt dưới ngưỡng vài frame nên track bị đứt rồi nhận ID mới. Giữ `conf` 0.15.
 - **video_5**: người nhỏ hai bên đường. Người áo đỏ giữ ID 2 ở cả hai cấu hình. ByteTrack có một hộp có vẻ nằm trên cột đèn giao thông (ID 33, frame 140).
 
 ### Cấu hình nộp
@@ -144,5 +154,5 @@ Chạy lại bằng `bash submission/chay_ban_nop.sh`.
 | video_1 | Đúng một nửa. Đúng là lỗi chính là bỏ sót người xa. Sai ở chỗ ByteTrack đủ tốt và hạ conf sẽ giúp nhiều | `botsort` hơn `bytetrack` 2–3 điểm HOTA. Hạ conf không giúp ByteTrack vì `track_thresh` 0.5 bên trong tracker (BoT-SORT: 0.21) |
 | video_2 | Sai | Cảnh sáng đèn chứ không quá tối. `botsort` conf 0.15 bắt nhiều người hơn và ít track ngắn hơn ByteTrack |
 | video_3 | Đúng | `botsort` conf thấp tốt nhất. Thêm: iou 0.7 giúp giữ người đứng chồng nhau |
-| video_4 | Đúng tracker, sai conf | Không thấy hộp giả trên kính ở các frame đã xem, nên conf 0.15 tốt hơn 0.3–0.4 |
+| video_4 | Đúng tracker, sai conf | Có hộp giả trên kính như dự đoán nhưng chỉ chớp ~0.5 s. Nâng conf lên 0.3 không bỏ được nó (điểm 0.4–0.5) mà làm đứt track người thật, nên conf 0.15 tốt hơn 0.3–0.4 |
 | video_5 | Đúng tracker, sai conf | `botsort` tốt hơn ByteTrack. conf 0.15 bắt thêm người nhỏ hai bên đường |

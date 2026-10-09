@@ -13,7 +13,7 @@ Mỗi video: tracker bạn nộp, `conf`, `iou`, điều bạn **nhìn thấy** 
 | video_1 (quảng trường, tĩnh, ban ngày) | botsort | 0.3 | 0.7 | Người gần camera giữ ID ổn định suốt đoạn đi về phía camera. Lỗi chính là bỏ sót đám đông nhỏ ở xa (người ngồi ghế, dưới gốc cây, trước cửa hàng); gần như không có hộp giả trên nền. | `bytetrack` 0.3 / 0.5: giữ ID tốt nhưng bắt ít người hơn, HOTA 26.92 so với 30.00. Hạ `conf` xuống 0.15 không cứu được vì ByteTrack không tạo track mới từ hộp điểm thấp. |
 | video_2 (phố đêm, tĩnh, rất đông) | botsort | 0.15 | 0.5 | Phố sáng đèn, camera trên cao. Người gần giữ ID ổn. `conf` 0.15 bắt thêm người nhỏ, ít track vụn hơn; không thấy hộp giả rõ trên đèn hay bóng. Vẫn sót nhiều người nhỏ ở phía trên khung hình. | `bytetrack` 0.3 / 0.5: ít hộp hơn hẳn, sót nhiều người hơn. `botsort` 0.5: sót thêm người và nhiều track ngắn hơn. |
 | video_3 (camera di động, ảnh nhỏ) | botsort | 0.15 | 0.7 | Người đứng rất gần camera, chồng lên nhau. Người mặc vest và người áo sọc giữ ID. `iou` 0.7 giữ được hộp người đứng sau mà `iou` 0.5 bị NMS xóa; `conf` thấp bắt thêm người nhỏ phía xa. | `bytetrack` 0.3 / 0.5: ít hộp nhất, track ngắn nhất, dễ mất người khi camera đi. `botsort` 0.15 / 0.5: sót người đứng chồng. |
-| video_4 (trong nhà, camera di chuyển) | botsort | 0.15 | 0.5 | Camera tiến tới, người phóng to dần. Người áo trắng và người áo đỏ giữ ID qua đoạn đã xem. Ở các frame đã xem không thấy hộp giả trên kính phản chiếu dù `conf` thấp. `conf` 0.15 bắt thêm người ở xa. | `botsort` 0.5 / 0.5: ít track vụn nhưng sót người ở xa. `bytetrack` 0.3 / 0.5: bắt ít người hơn. |
+| video_4 (trong nhà, camera di chuyển) | botsort | 0.15 | 0.5 | Camera tiến tới, người phóng to dần. Người áo trắng và người áo đỏ giữ ID qua đoạn đã xem. Xem hết video thấy có hộp giả trên kính phản chiếu nhưng chỉ chớp khoảng 0.5 s rồi mất, không thành track dài. `conf` 0.15 bắt thêm người ở xa. | `botsort` 0.3 / 0.5 (đủ frame): không bỏ được hộp trên kính vì hộp đó có điểm 0.4–0.5, lại làm đứt track người thật (track dưới 15 frame tăng từ 13 lên 23). `botsort` 0.5 / 0.5: sót người ở xa. |
 | video_5 (trên xe bus, giao lộ đông) | botsort | 0.15 | 0.4 | Người nhỏ ở hai bên đường; người áo đỏ giữ cùng ID qua đoạn đã xem. `conf` thấp bắt thêm người nhỏ. Vẫn còn track vụn khi xe rung. | `bytetrack` 0.3 / 0.5: ít hộp, có một hộp có vẻ nằm trên cột đèn giao thông. `ocsort` 0.3: số track vụn tương tự nhưng không có Re-ID để nối lại người. |
 
 ## 2. Số liệu video_1
@@ -60,7 +60,7 @@ So sánh các cấu hình đã thử trên `video_1` (đủ 600 frame):
 
 ## 4. Nếu có thêm thời gian
 
-Xem hết video preview của `video_4` để chắc `conf` 0.15 không sinh hộp giả trên kính ở đoạn sau, và quét `conf` mịn hơn (0.1–0.25) cho `botsort` trên `video_2`, `video_5`. Thử thêm `strongsort` ở `video_3` và `video_5`, vì trên `video_1` nó có IDF1 ngang `botsort`.
+Tìm frame có hộp giả trên kính ở `video_4` và xem điểm tin cậy của nó để biết có ngưỡng nào tách được hộp giả khỏi người thật không; quét `conf` mịn hơn (0.1–0.25) cho `botsort` trên `video_2`, `video_5`. Thử thêm `strongsort` ở `video_3` và `video_5`, vì trên `video_1` nó có IDF1 ngang `botsort`.
 
 ## Tệp nộp
 
