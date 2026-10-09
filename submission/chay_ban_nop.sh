@@ -6,7 +6,7 @@
 #   bash submission/chay_ban_nop.sh video_3    # một video
 # Không có GPU: DEVICE=cpu bash submission/chay_ban_nop.sh
 #
-# Kết quả: runs/nop_bai/video_N.txt và video_N_preview.mp4.
+# Kết quả: runs/nop_bai/video_N.txt và video_N_preview.mp4; file .txt được copy sang submission/ để nộp.
 set -e
 
 if [ -z "$LAB_DATA" ]; then
@@ -32,4 +32,5 @@ echo "$CAU_HINH" | while read -r V T C I; do
     --source "$LAB_DATA/$V/img1" --seq-name "$V" \
     --tracker "$T" --conf "$C" --iou "$I" \
     --out runs/nop_bai --save-video --device "$DEVICE"
+  cp "runs/nop_bai/$V.txt" "submission/$V.txt"
 done
