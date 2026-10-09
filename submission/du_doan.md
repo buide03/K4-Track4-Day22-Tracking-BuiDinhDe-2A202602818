@@ -39,14 +39,110 @@ Cơ sở từ bước 2: frame đầu `video_1` có khoảng 22 người theo nh
 | video_4 | botsort / deepocsort | vừa–cao (0.3–0.4) | hộp giả do phản chiếu kính |
 | video_5 | botsort | vừa (~0.3) | đổi ID liên tục do rung lắc |
 
-## Đối chiếu sau khi chạy
+## Baseline (bước 3)
 
-(Điền sau bước 4: dự đoán nào đúng, dự đoán nào sai, vì sao.)
+`video_1`, `bytetrack`, `conf=0.3`, `iou=0.5`, 150 frame đầu (`runs/thu_nhanh/`).
+
+Số ước lượng (ghép hộp với nhãn theo IoU ≥ 0.5 trên 150 frame, không phải số TrackEval):
+
+| Chỉ số | Giá trị |
+|---|---|
+| Hộp / frame | tracker 4.3, nhãn 25.7 |
+| Recall | 15.8% |
+| Precision | 93.4% (43 hộp giả / 651) |
+| Đổi ID | ~1 |
+| Recall theo cỡ | người cao ≥ 120 px: 44.6%; người cao < 120 px: 2.7% |
+| MOTA ước lượng | ~0.15 |
+
+Nhìn trên video (frame 20, 75, 140):
+
+- Giữ ID ổn: ba người đi về phía camera giữ ID 3, 2, 5 từ frame 20 đến 140. Hai người bên phải (ID 1, 4) giữ ID tới khi ra khỏi khung. Không thấy đổi ID kiểu A hay B.
+- Bỏ sót nhiều (kiểu C): người ngồi ghế, người dưới gốc cây, người trước cửa hàng phía sau hầu như không có hộp. Chỉ thỉnh thoảng bắt được một người xa (ID 7 ở frame 75).
+- Gần như không có hộp giả trên nền hoặc bóng.
+
+Kết luận: lỗi chính là **phát hiện**, không phải **tracking**. ByteTrack giữ ID tốt cho người YOLO bắt được, nhưng `conf=0.3` loại gần hết người nhỏ ở xa. Bước 4 với `video_1`: giữ `bytetrack`, hạ `conf` về 0.2 rồi 0.15; chạy thêm `botsort` cùng `conf` để so sánh.
+
+## Thử có hệ thống (bước 4)
+
+Các lượt thử nằm ở `runs/thu/<video>_<tracker>_c<conf>_i<iou>[_f150]/`.
+
+### video_1 — chạy đủ 600 frame, chấm bằng `evaluate_practice.py`
+
+| Tracker | conf | iou | HOTA | MOTA | IDF1 | DetA | AssA | IDSW | FP | FN |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bytetrack | 0.3 | 0.5 | 26.92 | 17.29 | 25.71 | 15.07 | 48.14 | 12 | 107 | 15249 |
+| bytetrack | 0.2 | 0.5 | 27.50 | 17.78 | 26.92 | 15.44 | 49.05 | 12 | 115 | 15150 |
+| bytetrack | 0.15 | 0.5 | 27.32 | 18.31 | 26.99 | 15.86 | 47.15 | 13 | 118 | 15047 |
+| ocsort | 0.15 | 0.5 | 25.88 | 19.52 | 29.05 | 21.62 | 31.56 | 168 | 1485 | 13300 |
+| botsort | 0.5 | 0.5 | 27.18 | 15.25 | 24.55 | 14.30 | 51.71 | 10 | 229 | 15509 |
+| botsort | 0.3 | 0.5 | 29.46 | 19.80 | 29.34 | 18.09 | 48.24 | 25 | 337 | 14539 |
+| botsort | 0.15 | 0.5 | 29.35 | **20.86** | 29.73 | 19.30 | 45.00 | 29 | 506 | 14171 |
+| botsort | 0.3 | 0.4 | 29.32 | 19.46 | 29.81 | 17.36 | 49.65 | 19 | 195 | 14751 |
+| **botsort** | **0.3** | **0.7** | **30.00** | 19.28 | 29.75 | 18.43 | 49.12 | 33 | 563 | 14403 |
+| botsort | 0.15 | 0.7 | 29.67 | 20.45 | **30.05** | 19.50 | 45.52 | 41 | 701 | 14039 |
+| deepocsort | 0.3 | 0.5 | 27.40 | 19.76 | 27.80 | 17.84 | 42.26 | 50 | 250 | 14610 |
+| strongsort | 0.3 | 0.5 | 28.66 | 19.72 | 29.87 | 17.71 | 46.60 | 40 | 230 | 14647 |
+
+Nhận xét:
+
+- `botsort` hơn `bytetrack` khoảng 2–3 điểm HOTA ở cùng `conf`. Chênh lệch đến từ DetA (bắt được nhiều người hơn), AssA gần như ngang nhau.
+- Hạ `conf` gần như không giúp `bytetrack`: FN chỉ giảm từ 15249 xuống 15047. Cấu hình mặc định của ByteTrack trong boxmot có `track_thresh` 0.5, nên hộp dưới ngưỡng đó chỉ dùng để nối track cũ, không tạo track mới. BoT-SORT tạo track mới từ 0.21 (`new_track_thresh`).
+- `ocsort` bắt nhiều người nhất (DetA 21.6) nhưng đổi ID 168 lần và AssA tụt còn 31.6. Đây là ví dụ MOTA không thấp mà HOTA lại thấp nhất.
+- `conf` 0.5 giữ ID tốt nhất (AssA 51.7, IDSW 10) nhưng sót nhiều người nhất, HOTA tụt về 27.2.
+- Chọn `botsort` conf 0.3 iou 0.7 theo HOTA. `botsort` conf 0.15 iou 0.5 có MOTA cao nhất nhưng HOTA thấp hơn một chút.
+
+### video_2 – video_5 — 150 frame, chỉ số thay thế + xem frame 60 và 140
+
+Không có nhãn, nên so bằng chỉ số tự tính trên file kết quả: hộp/frame (nhiều hơn thường là bắt được nhiều người hơn, cần xem video để loại hộp giả), ID/hộp (số ID chia số hộp trung bình mỗi frame; càng thấp càng ít bị cắt vụn track), trung vị độ dài track, và tỉ lệ track ngắn dưới 10 frame.
+
+| Video | Cấu hình | hộp/fr | #ID | ID/hộp | trung vị dài | % < 10 fr |
+|---|---|---|---|---|---|---|
+| video_2 | bytetrack 0.3 / 0.5 | 8.8 | 16 | 1.8 | 96 | 19% |
+| | ocsort 0.3 / 0.5 | 10.6 | 25 | 2.4 | 35 | 20% |
+| | botsort 0.3 / 0.5 | 10.3 | 23 | 2.2 | 38 | 22% |
+| | **botsort 0.15 / 0.5** | **11.5** | 21 | **1.8** | 53 | **5%** |
+| | botsort 0.5 / 0.5 | 7.5 | 14 | 1.9 | 105 | 29% |
+| video_3 | bytetrack 0.3 / 0.5 | 3.9 | 18 | 4.6 | 10 | 39% |
+| | ocsort 0.3 / 0.5 | 5.3 | 24 | 4.6 | 13 | 38% |
+| | botsort 0.3 / 0.5 | 5.1 | 23 | 4.5 | 15 | 39% |
+| | botsort 0.15 / 0.5 | 5.7 | 21 | 3.7 | 22 | 33% |
+| | **botsort 0.15 / 0.7** | **6.5** | 22 | **3.4** | 22 | **32%** |
+| video_4 | bytetrack 0.3 / 0.5 | 5.4 | 15 | 2.8 | 38 | 13% |
+| | botsort 0.3 / 0.5 | 6.4 | 18 | 2.8 | 31 | 28% |
+| | **botsort 0.15 / 0.5** | **6.9** | 16 | **2.3** | 69 | 19% |
+| | botsort 0.5 / 0.5 | 5.8 | 12 | 2.1 | 73 | 0% |
+| video_5 | bytetrack 0.3 / 0.5 | 4.5 | 20 | 4.5 | 18 | 30% |
+| | ocsort 0.3 / 0.5 | 6.6 | 26 | 4.0 | 26 | 23% |
+| | botsort 0.3 / 0.5 | 6.0 | 27 | 4.5 | 19 | 30% |
+| | **botsort 0.15 / 0.4** | **6.7** | 26 | **3.9** | 28 | 23% |
+
+Đổi `iou` 0.4 / 0.5 / 0.7 gần như không đổi gì ở `video_2`, `video_4`, `video_5`. Riêng `video_3` (người đứng sát, chồng lên nhau), iou 0.7 cho 6.5 hộp/frame so với 5.7 ở iou 0.5: NMS bớt xóa nhầm hộp của người đứng sau.
+
+Nhìn trên video:
+
+- **video_2**: cảnh đèn đường sáng, không quá tối. Cả hai tracker sót nhiều người nhỏ ở xa phía trên khung hình. Người gần giữ ID ổn. `botsort` 0.15 bắt thêm vài người nhỏ, không thấy hộp giả rõ ràng.
+- **video_3**: người rất gần camera. Người mặc vest và người áo sọc giữ ID ở cả hai tracker. `botsort` 0.15 bắt thêm người nhỏ phía xa.
+- **video_4**: ở frame 60 và 140 không thấy hộp giả trên kính phản chiếu, kể cả `conf` 0.15. `conf` 0.15 bắt thêm người ở xa so với 0.5.
+- **video_5**: người nhỏ hai bên đường. Người áo đỏ giữ ID 2 ở cả hai cấu hình. ByteTrack có một hộp có vẻ nằm trên cột đèn giao thông (ID 33, frame 140).
+
+### Cấu hình nộp
+
+Chạy lại bằng `bash submission/chay_ban_nop.sh`.
+
+| Video | Tracker | conf | iou | Đã thử nhưng loại |
+|---|---|---|---|---|
+| video_1 | botsort | 0.3 | 0.7 | bytetrack 0.3 / 0.5: HOTA 26.92, sót người nhiều hơn |
+| video_2 | botsort | 0.15 | 0.5 | bytetrack 0.3 / 0.5: ít hộp hơn (8.8 so với 11.5 / frame) |
+| video_3 | botsort | 0.15 | 0.7 | bytetrack 0.3 / 0.5: ít hộp nhất, track ngắn (trung vị 10 frame) |
+| video_4 | botsort | 0.15 | 0.5 | botsort 0.5 / 0.5: sót người ở xa |
+| video_5 | botsort | 0.15 | 0.4 | bytetrack 0.3 / 0.5: ít hộp, có hộp nghi giả trên cột đèn |
+
+## Đối chiếu sau khi chạy
 
 | Video | Dự đoán đúng? | Thấy gì trên video / số liệu |
 |---|---|---|
-| video_1 | | |
-| video_2 | | |
-| video_3 | | |
-| video_4 | | |
-| video_5 | | |
+| video_1 | Đúng một nửa. Đúng là lỗi chính là bỏ sót người xa. Sai ở chỗ ByteTrack đủ tốt và hạ conf sẽ giúp nhiều | `botsort` hơn `bytetrack` 2–3 điểm HOTA. Hạ conf không giúp ByteTrack vì `track_thresh` 0.5 bên trong tracker (BoT-SORT: 0.21) |
+| video_2 | Sai | Cảnh sáng đèn chứ không quá tối. `botsort` conf 0.15 bắt nhiều người hơn và ít track ngắn hơn ByteTrack |
+| video_3 | Đúng | `botsort` conf thấp tốt nhất. Thêm: iou 0.7 giúp giữ người đứng chồng nhau |
+| video_4 | Đúng tracker, sai conf | Không thấy hộp giả trên kính ở các frame đã xem, nên conf 0.15 tốt hơn 0.3–0.4 |
+| video_5 | Đúng tracker, sai conf | `botsort` tốt hơn ByteTrack. conf 0.15 bắt thêm người nhỏ hai bên đường |
