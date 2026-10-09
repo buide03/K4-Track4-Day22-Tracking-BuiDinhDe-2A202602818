@@ -212,3 +212,17 @@ Chỉ số "nhảy" không dùng được ở video này: xem 6 lần nhảy c�
 - Xe rẽ ở frame 409–572 (ước lượng bằng dịch chuyển toàn ảnh giữa hai frame): trung bình 26.4 px/frame, cả video 8.5 px/frame.
 - Frame 410, ID 103: một hộp bao hai người đi sát nhau (rộng/cao 0.40, điểm 0.71). YOLO ở `iou` 0.4 / 0.5 / 0.7 với `conf` 0.15 / 0.05 đều chỉ ra một hộp; hộp thứ hai chỉ có ở `conf` 0.05 + `iou` 0.7, điểm 0.07.
 - Các hộp rộng bất thường khác trong đoạn rẽ là người sát mép dưới ảnh bị cắt nửa thân, không phải gom hai người.
+
+### video_2 — hai người chồng nhau theo chiều sâu (`iou`)
+
+Quan sát trên bản nộp: giây 15 người phụ nữ áo kem ID 42 đổi thành ID 44 khi đi sau một người khác; giây 26–28 hộp ID 3 (người áo đen sát mép dưới) trôi lên người áo xám ID 27.
+
+Chạy YOLO trên đúng frame: frame 319 với `iou` 0.5 chỉ ra một hộp gộp hai người phụ nữ (0.34), `iou` 0.7 ra thêm hai hộp riêng (0.26, 0.23); frame 558 với `iou` 0.5 chỉ có hộp gộp người áo xám + người áo đen (0.54), `iou` 0.7 có thêm hộp riêng người áo xám (0.41).
+
+| botsort 0.15, đủ frame | hộp/frame | #ID | % < 10 fr | hộp trùng (IoU > 0.7, hai ID) | áo kem | ID 3 |
+|---|---|---|---|---|---|---|
+| **iou 0.5 (nộp)** | 13.2 | 62 | 6% | 1.0% | đổi ID ở frame 321 | bị trôi sang người áo xám |
+| iou 0.6 | 13.4 | 63 | 5% | 2.5% | giữ 1 ID tới frame 527 | chưa xem |
+| iou 0.7 | 13.7 | 63 | 5% | 4.4% | giữ 1 ID tới frame 527 | giữ ID 3; người áo xám bị trùng 2 ID |
+
+Đối chiếu `video_1` (có nhãn, botsort 0.3): iou 0.5 → 0.7 làm hộp trùng 7.5% → 13.7% nhưng HOTA 29.46 → 30.00, IDF1 29.34 → 29.75, MOTA 19.80 → 19.28. Bài nộp `video_2` giữ `iou` 0.5.

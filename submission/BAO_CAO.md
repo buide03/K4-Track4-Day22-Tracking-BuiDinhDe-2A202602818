@@ -68,7 +68,7 @@ So sánh các cấu hình đã thử trên `video_1` (đủ 600 frame):
 
 ## 4. Nếu có thêm thời gian
 
-Tìm frame có hộp giả trên kính ở `video_4` và xem điểm tin cậy của nó để biết có ngưỡng nào tách được hộp giả khỏi người thật không; quét `conf` mịn hơn (0.1–0.25) cho `botsort` trên `video_2`, `video_5`. Phần lớn lỗi còn lại (người nhỏ bị sót, hai người sát nhau thành một hộp) nằm ở detector nano với ảnh 640 px, nên nếu luật cho phép thì thứ đáng thử tiếp là ảnh đầu vào lớn hơn: thử riêng trên một frame của `video_2`, điểm của người nữ bị sót tăng từ 0.13–0.18 lên 0.40–0.60 khi dùng 1280 px.
+Tìm frame có hộp giả trên kính ở `video_4` và xem điểm tin cậy của nó để biết có ngưỡng nào tách được hộp giả khỏi người thật không; quét `conf` mịn hơn (0.1–0.25) cho `botsort` trên `video_2`, `video_5`. Phần lớn lỗi còn lại (người nhỏ bị sót, hai người sát nhau thành một hộp) nằm ở detector nano với ảnh 640 px, nên nếu luật cho phép thì thứ đáng thử tiếp là ảnh đầu vào lớn hơn: thử riêng trên một frame của `video_2`, điểm của người nữ bị sót tăng từ 0.13–0.18 lên 0.40–0.60 khi dùng 1280 px. Với `video_2`, thử `iou` 0.7: ở hai chỗ hai người chồng nhau theo chiều sâu (giây 15: người phụ nữ ID 42 đổi thành ID 44; giây 26–28: hộp ID 3 trôi sang người áo xám ID 27), `iou` 0.5 để NMS chỉ giữ một hộp gộp hai người, còn `iou` 0.7 giữ được hộp riêng và sửa cả hai chỗ, đổi lại hộp trùng (một người hai ID) tăng từ 1.0% lên 4.4%. Trên `video_1` cùng thay đổi này tăng HOTA (29.46 → 30.00), nên đây là hướng nên chấm thử tiếp; bài nộp giữ `iou` 0.5.
 
 ## Tệp nộp
 
