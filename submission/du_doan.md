@@ -156,3 +156,59 @@ Chạy lại bằng `bash submission/chay_ban_nop.sh`.
 | video_3 | Đúng | `botsort` conf thấp tốt nhất. Thêm: iou 0.7 giúp giữ người đứng chồng nhau |
 | video_4 | Đúng tracker, sai conf | Có hộp giả trên kính như dự đoán nhưng chỉ chớp ~0.5 s. Nâng conf lên 0.3 không bỏ được nó (điểm 0.4–0.5) mà làm đứt track người thật, nên conf 0.15 tốt hơn 0.3–0.4 |
 | video_5 | Đúng tracker, sai conf | `botsort` tốt hơn ByteTrack. conf 0.15 bắt thêm người nhỏ hai bên đường |
+
+## Kiểm tra thêm sau khi xem video nộp
+
+Các lượt dưới đây chạy **đủ frame**, chỉ để so sánh (ghi ở `runs/thu/`). Bài nộp không đổi.
+
+### So với baseline (`bytetrack` 0.3 / 0.5, đủ frame)
+
+| Video | Cấu hình | hộp/frame | #ID | ID/hộp | trung vị dài | % < 10 fr |
+|---|---|---|---|---|---|---|
+| video_2 | baseline | 9.4 | 47 | 5.0 | 177 | 13% |
+| | **nộp: botsort 0.15 / 0.5** | **13.2** | 62 | **4.7** | 170 | **6%** |
+| video_3 | baseline | 5.1 | 127 | 24.9 | 16 | 32% |
+| | **nộp: botsort 0.15 / 0.7** | **6.8** | 165 | 24.1 | 15 | 30% |
+| video_4 | baseline | 6.4 | 61 | 9.5 | 79 | 15% |
+| | **nộp: botsort 0.15 / 0.5** | **7.4** | 70 | 9.5 | 60 | 16% |
+| video_5 | baseline | 2.7 | 62 | 22.9 | 23 | 37% |
+| | **nộp: botsort 0.15 / 0.4** | **4.5** | 79 | **17.8** | 31 | **23%** |
+
+- Cả bốn video bắt được nhiều người hơn: +40% (`video_2`), +33% (`video_3`), +16% (`video_4`), +67% (`video_5`).
+- Giữ ID tốt hơn rõ ở `video_2` và `video_5` (ID/hộp thấp hơn, track ngắn ít hơn). Ở `video_3` và `video_4` gần như ngang baseline; `video_4` có trung vị độ dài track ngắn hơn (60 so với 79) vì theo thêm người khó.
+- `video_1` (TrackEval): HOTA 26.92 → 30.00, MOTA 17.29 → 19.28, IDF1 25.71 → 29.75, IDSW 12 → 33.
+
+### video_2 — tráo ID khi đi qua nhau
+
+| Cấu hình | hộp/frame | #ID | % < 10 fr | trung vị dài | số lần hộp "nhảy" |
+|---|---|---|---|---|---|
+| **botsort 0.15 / 0.5 (nộp)** | 13.2 | 62 | 6% | 170 | 1 |
+| botsort 0.3 / 0.5 | 11.7 | 69 | 19% | 97 | 2 |
+| strongsort 0.15 / 0.5 | 16.2 | 121 | 31% | 42 | 22 |
+| deepocsort 0.15 / 0.5 | 16.0 | 127 | 28% | 32 | 30 |
+| bytetrack 0.15 / 0.5 | 10.1 | 43 | 7% | 189 | 1 |
+
+"Nhảy" là số lần hộp của một ID dịch hơn nửa bề rộng người giữa hai frame liên tiếp. Trên `video_1` chỉ số này xếp hạng cùng thứ tự với IDSW thật (botsort 0.5: 1 / IDSW 10; ocsort 0.15: 47 / IDSW 168) nhưng chỉ bắt được một phần số lần đổi ID. Một chỉ số khác (đổi hướng đột ngột khi chồng hộp) đã thử và bỏ vì không khớp IDSW thật trên `video_1`.
+
+Cặp nam nữ (giây 5–9 trên preview): người nam ID 15 ở frame 14–92 (điểm TB 0.25), mất hộp frame 93–173, xuất hiện lại frame 174 với ID 27 (điểm TB 0.51). BoT-SORT chỉ dùng hộp điểm < 0.34 để nối track đang theo, không nối lại track lost và không tạo track mới; track lost bị xoá sau 60 frame. Người nữ: YOLO cho 0.13 (frame 60) và 0.18 (frame 130), `iou` 0.7 không thêm hộp. Thử riêng ảnh đầu vào 1280 px (không dùng cho bài nộp): điểm lên 0.40–0.60.
+
+### video_3 — mất dấu rồi sinh ID mới
+
+| Cấu hình | hộp/frame | #ID | % < 10 fr | trung vị dài |
+|---|---|---|---|---|
+| **botsort 0.15 / 0.7 (nộp)** | 6.8 | 165 | 30% | 15 |
+| botsort 0.1 / 0.7 | 6.9 | 168 | 32% | 15 |
+| botsort 0.25 / 0.7 | 6.5 | 171 | 39% | 15 |
+| botsort 0.15 / 0.8 | 7.3 | 181 | 32% | 18 |
+| strongsort 0.15 / 0.7 | 7.2 | 291 | 60% | 6 |
+| deepocsort 0.15 / 0.7 | 7.3 | 300 | 49% | 10 |
+| ocsort 0.15 / 0.7 | 7.4 | 268 | 48% | 12 |
+| bytetrack 0.15 / 0.7 | 5.2 | 130 | 30% | 16 |
+
+Chỉ số "nhảy" không dùng được ở video này: xem 6 lần nhảy của bản nộp thì đều do camera quay, hộp người ở mép ảnh hoặc bị che co giãn, hoặc hộp rất nhỏ rung, không lần nào là tráo ID. Nguyên nhân mất dấu: ít khung hình/giây, camera đi và quay, người gần che nhau; `track_buffer` và ngưỡng ghép bị khoá.
+
+### video_5 — hộp gom hai người, mất người xa khi xe rẽ
+
+- Xe rẽ ở frame 409–572 (ước lượng bằng dịch chuyển toàn ảnh giữa hai frame): trung bình 26.4 px/frame, cả video 8.5 px/frame.
+- Frame 410, ID 103: một hộp bao hai người đi sát nhau (rộng/cao 0.40, điểm 0.71). YOLO ở `iou` 0.4 / 0.5 / 0.7 với `conf` 0.15 / 0.05 đều chỉ ra một hộp; hộp thứ hai chỉ có ở `conf` 0.05 + `iou` 0.7, điểm 0.07.
+- Các hộp rộng bất thường khác trong đoạn rẽ là người sát mép dưới ảnh bị cắt nửa thân, không phải gom hai người.
